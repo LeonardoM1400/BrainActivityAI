@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+outputs/
+data/raw/
+*.edf
+*.bdf
+*.fif
+.DS_Store
