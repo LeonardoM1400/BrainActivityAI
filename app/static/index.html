@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brain Activity AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0a0a0f;
+      color: #e0e0f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 24px 40px;
+      border-bottom: 1px solid #2a2a4a;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #7b8cde, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header .pulse {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: #12121e;
+      border: 1px solid #2a2a4a;
+      border-radius: 16px;
+      padding: 28px;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #a0a0c0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 20px;
+    }
+
+    .upload-area {
+      border: 2px dashed #3a3a6a;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .upload-area:hover, .upload-area.dragover {
+      border-color: #7b8cde;
+      background: #1a1a30;
+    }
+
+    .upload-area .icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .upload-area p { color: #8080a0; font-size: 0.9rem; }
+    .upload-area strong { color: #a0a0d0; }
+
+    #file-input { display: none; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: linear-gradient(135deg, #7b8cde, #a78bfa); color: #fff; }
+    .btn-secondary { background: #1e1e3a; color: #a0a0d0; border: 1px solid #3a3a6a; }
+
+    .btn-row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+
+    .result-box {
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .prediction-badge {
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #7b8cde22, #a78bfa22);
+      border: 1px solid #7b8cde66;
+      color: #c0c8ff;
+    }
+
+    .prob-bar-wrap { display: flex; flex-direction: column; gap: 10px; }
+
+    .prob-row { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+    .prob-label { width: 110px; color: #a0a0c0; flex-shrink: 0; }
+    .prob-track { flex: 1; height: 8px; background: #1e1e3a; border-radius: 4px; overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #7b8cde, #a78bfa); transition: width 0.6s ease; }
+    .prob-val { width: 46px; text-align: right; color: #c0c0e0; }
+
+    .empty-state {
+      color: #4a4a6a;
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #2a2a4a;
+      border-top-color: #7b8cde;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 40px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    canvas {
+      width: 100%;
+      border-radius: 8px;
+      background: #0d0d1a;
+    }
+
+    .full-width { grid-column: 1 / -1; }
+
+    .meta {
+      font-size: 0.78rem;
+      color: #5a5a7a;
+      margin-top: 8px;
+    }
+
+    .error-msg {
+      color: #f87171;
+      background: #2a1010;
+      border: 1px solid #7f1d1d;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="pulse"></div>
+  <h1>Brain Activity AI</h1>
+</header>
+
+<main>
+  <!-- Upload -->
+  <div class="card">
+    <h2>EEG Input</h2>
+    <div class="upload-area" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="icon">🧠</div>
+      <p><strong>Drop an EEG file here</strong></p>
+      <p style="margin-top:6px">Supports .edf &nbsp;·&nbsp; .bdf &nbsp;·&nbsp; .fif &nbsp;·&nbsp; .set</p>
+    </div>
+    <input type="file" id="file-input" accept=".edf,.bdf,.fif,.set" />
+    <p id="file-name" class="meta" style="margin-top:12px"></p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="predict-btn" disabled onclick="runPredict()">
+        ⚡ Analyze File
+      </button>
+      <button class="btn btn-secondary" onclick="runDemo()">
+        🎲 Run Demo
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card">
+    <h2>Prediction</h2>
+    <div class="result-box" id="result-box">
+      <p class="empty-state">Run the demo or upload an EEG file to see results.</p>
+    </div>
+  </div>
+
+  <!-- Signal chart -->
+  <div class="card full-width">
+    <h2>EEG Signal Preview</h2>
+    <canvas id="eeg-canvas" height="220"></canvas>
+  </div>
+</main>
+
+<script>
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  const predictBtn = document.getElementById('predict-btn');
+  const fileNameEl = document.getElementById('file-name');
+  let selectedFile = null;
+
+  fileInput.addEventListener('change', () => {
+    selectedFile = fileInput.files[0];
+    fileNameEl.textContent = selectedFile ? `Selected: ${selectedFile.name}` : '';
+    predictBtn.disabled = !selectedFile;
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) {
+      selectedFile = f;
+      fileNameEl.textContent = `Selected: ${f.name}`;
+      predictBtn.disabled = false;
+    }
+  });
+
+  function showSpinner() {
+    document.getElementById('result-box').innerHTML = '<div class="spinner"></div>';
+  }
+
+  function showError(msg) {
+    document.getElementById('result-box').innerHTML = `<div class="error-msg">⚠️ ${msg}</div>`;
+  }
+
+  function renderResult(data) {
+    const probs = data.probabilities;
+    const entries = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+
+    const bars = entries.map(([label, prob]) => `
+      <div class="prob-row">
+        <span class="prob-label">${label}</span>
+        <div class="prob-track">
+          <div class="prob-fill" style="width: ${(prob * 100).toFixed(1)}%"></div>
+        </div>
+        <span class="prob-val">${(prob * 100).toFixed(1)}%</span>
+      </div>
+    `).join('');
+
+    const note = data.note ? `<p class="meta">${data.note}</p>` : '';
+    const meta = `<p class="meta">Analyzed ${data.n_epochs_analyzed} epoch${data.n_epochs_analyzed !== 1 ? 's' : ''}</p>`;
+
+    document.getElementById('result-box').innerHTML = `
+      <div>
+        <p style="font-size:0.8rem;color:#6060a0;margin-bottom:8px">DETECTED STATE</p>
+        <span class="prediction-badge">${data.predicted_label}</span>
+      </div>
+      <div class="prob-bar-wrap">${bars}</div>
+      ${meta}${note}
+    `;
+
+    if (data.sample_signal) drawSignal(data.sample_signal);
+  }
+
+  async function runPredict() {
+    if (!selectedFile) return;
+    showSpinner();
+    const form = new FormData();
+    form.append('file', selectedFile);
+    try {
+      const res = await fetch('/api/predict', { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Server error');
+      renderResult(data);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  async function runDemo() {
+    showSpinner();
+    try {
+      const res = await fetch('/api/demo', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Server error');
+      renderResult(data);
+    } catch (e) {
+      showError(e.message);
+    }
+  }
+
+  function drawSignal(channels) {
+    const canvas = document.getElementById('eeg-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    const nCh = channels.length;
+    const rowH = canvas.height / nCh;
+
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const colors = ['#7b8cde','#a78bfa','#60a5fa','#34d399','#f472b6','#fb923c','#facc15','#94a3b8'];
+
+    channels.forEach((ch, i) => {
+      const samples = ch;
+      const n = samples.length;
+      const yCenter = rowH * i + rowH / 2;
+      const amp = rowH * 0.4;
+      const max = Math.max(...samples.map(Math.abs)) || 1;
+
+      ctx.beginPath();
+      ctx.strokeStyle = colors[i % colors.length];
+      ctx.lineWidth = 1.2;
+      samples.forEach((v, x) => {
+        const px = (x / (n - 1)) * canvas.width;
+        const py = yCenter + (v / max) * amp;
+        x === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.font = `${11 * window.devicePixelRatio}px sans-serif`;
+      ctx.fillText(`Ch ${i + 1}`, 6, yCenter - amp + 14);
+    });
+  }
+
+  window.addEventListener('resize', () => {
+    // Redraw on resize if signal data exists
+  });
+</script>
+</body>
+</html>

@@ -1,14 +1,15 @@
 # Brain Activity AI
 
-A machine learning project that uses AI to detect and classify brain activity from EEG (electroencephalogram) signals. It includes two deep learning models, a full preprocessing pipeline, and spectral feature extraction.
+A machine learning project that uses AI to detect and classify brain activity from EEG (electroencephalogram) signals. Includes two deep learning models, a full preprocessing pipeline, real EEG dataset support, and a web interface.
 
 ## What it does
 
-- Loads real EEG recordings (`.edf`, `.bdf`, `.fif`, `.set`) or generates synthetic EEG data for testing
+- Trains on real EEG data from the **PhysioNet Motor Imagery dataset** (auto-downloaded)
+- Loads any EEG recording (`.edf`, `.bdf`, `.fif`, `.set`) or generates synthetic data for testing
 - Preprocesses signals with bandpass and notch filters
 - Extracts frequency-band power features (delta, theta, alpha, beta, gamma)
-- Trains two AI models to classify brain states
-- Outputs training curves and confusion matrices
+- Classifies brain states: Rest, Left Fist, Right Fist, Both Hands
+- Serves a **web interface** to upload EEG files and visualize predictions live
 
 ## Models
 
@@ -21,21 +22,27 @@ A machine learning project that uses AI to detect and classify brain activity fr
 
 ```
 BrainActivityAI/
-├── main.py                  # Run both pipelines end-to-end
+├── main.py                      # Demo pipeline on synthetic data
+├── train_physionet.py           # Train on real PhysioNet EEG dataset
 ├── requirements.txt
+├── app/
+│   ├── server.py                # FastAPI web server
+│   └── static/
+│       └── index.html           # Web UI (upload EEG, view predictions)
 └── src/
     ├── data/
-    │   └── loader.py        # Load EEG files or generate synthetic data
+    │   ├── loader.py            # Load EEG files or generate synthetic data
+    │   └── physionet.py         # PhysioNet dataset downloader & preprocessor
     ├── preprocessing/
-    │   └── filters.py       # Bandpass, notch filter, normalization
+    │   └── filters.py           # Bandpass, notch filter, normalization
     ├── features/
-    │   └── spectral.py      # Per-band power extraction
+    │   └── spectral.py          # Per-band power extraction
     ├── models/
-    │   └── eeg_cnn.py       # EEGNet and EEG Transformer architectures
+    │   └── eeg_cnn.py           # EEGNet and EEG Transformer architectures
     ├── training/
-    │   └── trainer.py       # Training loop, evaluation, data loaders
+    │   └── trainer.py           # Training loop, evaluation, data loaders
     └── visualization/
-        └── plots.py         # Loss curves, confusion matrix, EEG waveform plots
+        └── plots.py             # Loss curves, confusion matrix, EEG waveform plots
 ```
 
 ## Setup
@@ -57,55 +64,62 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Run the demo (synthetic data)
+### 1. Train on real EEG data (PhysioNet)
+
+Downloads the dataset automatically on first run.
+
+```bash
+python train_physionet.py
+```
+
+Options:
+```bash
+python train_physionet.py --subjects 1 2 3 4 5 --model transformer --epochs 40
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--subjects` | `1 2 3` | Which subjects to train on (1–109 available) |
+| `--model` | `cnn` | `cnn` (EEGNet) or `transformer` |
+| `--epochs` | `30` | Number of training epochs |
+| `--lr` | `0.001` | Learning rate |
+| `--batch-size` | `32` | Batch size |
+
+Saves the trained model to `checkpoints/`.
+
+### 2. Launch the web interface
+
+```bash
+uvicorn app.server:app --reload
+```
+
+Then open **http://localhost:8000** in your browser.
+
+- Click **Run Demo** to test with synthetic EEG data instantly
+- Or upload a real `.edf` / `.bdf` / `.fif` file to analyze it
+- See the predicted brain state, confidence per class, and a live signal preview
+
+### 3. Run the synthetic demo (no dataset needed)
 
 ```bash
 python main.py
 ```
 
-This generates synthetic EEG, trains both models, and saves plots to the `outputs/` folder.
-
-### Use your own EEG data
-
-Edit `main.py` and replace `generate_synthetic_eeg(...)` with a call to `load_eeg_file`:
-
-```python
-from src.data.loader import load_eeg_file
-
-raw = load_eeg_file("path/to/your/file.edf")
-```
-
-Supported formats: `.edf`, `.bdf`, `.fif`, `.set`
-
-### Customize training
-
-In `main.py` you can adjust:
-
-```python
-# Change number of EEG channels, duration, classes
-epochs, labels, sfreq = generate_synthetic_eeg(
-    n_channels=64,
-    duration_sec=300.0,
-    sfreq=256.0,
-    n_classes=4,
-)
-
-# Change training hyperparameters
-history = train(model, train_loader, val_loader, n_epochs=50, lr=5e-4)
-```
+Trains both models on generated data and saves plots to `outputs/`.
 
 ## Output
 
-After running, the `outputs/` folder will contain:
-
-- `cnn_training.png` — EEGNet loss and accuracy curves
-- `cnn_confusion.png` — EEGNet confusion matrix
-- `transformer_training.png` — Transformer loss and accuracy curves
+| File | Description |
+|---|---|
+| `checkpoints/*.pt` | Trained model weights |
+| `outputs/*_training.png` | Loss and accuracy curves |
+| `outputs/*_confusion.png` | Confusion matrix |
 
 ## Dependencies
 
-- [MNE](https://mne.tools) — EEG/MEG data loading and processing
+- [MNE](https://mne.tools) — EEG/MEG data loading, PhysioNet dataset
 - [PyTorch](https://pytorch.org) — Deep learning models
+- [FastAPI](https://fastapi.tiangolo.com) — Web server
 - [scikit-learn](https://scikit-learn.org) — Metrics and utilities
 - [SciPy](https://scipy.org) — Signal filtering
 - [Matplotlib](https://matplotlib.org) / [Seaborn](https://seaborn.pydata.org) — Visualization
